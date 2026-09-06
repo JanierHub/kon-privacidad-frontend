@@ -90,7 +90,7 @@ export type RootTabParamList = {
  * real login, onboarding, or modal screens above the tabs.
  */
 export type RootStackParamList = {
-  /** Welcome / login screen shown on launch. */
   Auth: undefined;
   MainTabs: NavigatorScreenParams<RootTabParamList>;
+  Admin: undefined;
 };
