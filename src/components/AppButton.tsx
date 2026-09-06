@@ -11,13 +11,15 @@ type AppButtonProps = {
   onPress?: () => void;
   /** Shows a spinner and disables taps while an async action runs. */
   loading?: boolean;
+  /** When true the button sizes to its label instead of stretching full width. */
+  fit?: boolean;
 };
 
 /**
  * Shared app button with primary (filled) and secondary (outlined)
  * variants. Uses Pressable so it gives visual feedback while pressed.
  */
-export function AppButton({ label, variant = 'primary', onPress, loading = false }: AppButtonProps) {
+export function AppButton({ label, variant = 'primary', onPress, loading = false, fit = false }: AppButtonProps) {
   const isPrimary = variant === 'primary';
 
   return (
@@ -27,6 +29,7 @@ export function AppButton({ label, variant = 'primary', onPress, loading = false
       style={({ pressed }) => [
         styles.button,
         isPrimary ? styles.primary : styles.secondary,
+        fit && styles.fit,
         pressed && styles.pressed,
         loading && styles.disabled,
       ]}
@@ -44,11 +47,15 @@ export function AppButton({ label, variant = 'primary', onPress, loading = false
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'stretch',
+  },
+  fit: {
+    alignSelf: 'flex-start',
   },
   primary: {
     backgroundColor: Colors.primary,

@@ -54,14 +54,14 @@ export function CalendarScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
       renderItem={({ item }) => (
         <View style={styles.card}>
-          {item.is_restricted && <Text style={styles.restricted}>🔒 Restringido</Text>}
+          {item.is_restricted && <Text style={styles.restricted}>Restringido</Text>}
           <Text style={styles.title}>{item.title}</Text>
           {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
           <View style={styles.row}>
-            <Text style={styles.meta}>📅 {item.event_date}</Text>
-            {item.event_time ? <Text style={styles.meta}>🕐 {item.event_time}</Text> : null}
+            <Text style={styles.meta}>{item.event_date}</Text>
+            {item.event_time ? <Text style={styles.meta}>{item.event_time}</Text> : null}
           </View>
-          {item.location ? <Text style={styles.meta}>📍 {item.location}</Text> : null}
+          {item.location ? <Text style={styles.meta}>{item.location}</Text> : null}
         </View>
       )}
     />

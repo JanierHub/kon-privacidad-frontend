@@ -1,3 +1,5 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -9,8 +11,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '../navigation/theme';
+import type { RootStackParamList } from '../navigation/types';
 import { supabase } from '../services/supabase';
 
 type Tab = 'posts' | 'users' | 'events';
@@ -52,13 +56,13 @@ function PostsSection({ onRefresh }: { onRefresh: () => void }) {
     ]);
   };
 
-  if (loading) return <Text style={styles.placeholder}>Cargando posts...</Text>;
+  if (loading) return <Text style={styles.placeholder}>Cargando publicaciones...</Text>;
 
   return (
     <View style={{ gap: 8 }}>
       <TextInput style={styles.input} placeholder="Título" placeholderTextColor={Colors.subtitle} value={title} onChangeText={setTitle} />
       <TextInput style={styles.input} placeholder="Contenido" placeholderTextColor={Colors.subtitle} value={content} onChangeText={setContent} multiline />
-      <Pressable style={styles.addBtn} onPress={addPost}><Text style={styles.addBtnText}>+ Publicar</Text></Pressable>
+      <Pressable style={styles.addBtn} onPress={addPost}><Text style={styles.addBtnText}>Crear publicación</Text></Pressable>
       {posts.map((p) => (
         <View key={p.id} style={styles.item}>
           <View style={{ flex: 1 }}>
@@ -66,10 +70,10 @@ function PostsSection({ onRefresh }: { onRefresh: () => void }) {
             <Text style={styles.itemMeta}>{p.profiles?.full_name} · {new Date(p.created_at).toLocaleDateString()}</Text>
           </View>
           <Pressable onPress={() => toggleHidden(p.id, p.is_hidden)} style={styles.actionBtn}>
-            <Text style={{ color: Colors.primary, fontSize: 12 }}>{p.is_hidden ? '👁 Mostrar' : '🙈 Ocultar'}</Text>
+            <Text style={{ color: Colors.primary, fontSize: 12 }}>{p.is_hidden ? 'Mostrar' : 'Ocultar'}</Text>
           </Pressable>
           <Pressable onPress={() => deletePost(p.id)} style={styles.actionBtn}>
-            <Text style={{ color: Colors.danger, fontSize: 12 }}>🗑</Text>
+            <Ionicons name="trash-outline" size={18} color={Colors.danger} />
           </Pressable>
         </View>
       ))}
@@ -97,7 +101,7 @@ function UsersSection() {
       Alert.alert('Campos requeridos', 'Ingresa el correo y la contraseña del nuevo administrador.');
       return;
     }
-    if (!newPassword.trim() || newPassword.trim().length < 6) {
+    if (newPassword.trim().length < 6) {
       Alert.alert('Contraseña muy corta', 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
@@ -109,7 +113,7 @@ function UsersSection() {
       if (error) {
         Alert.alert('Error', error.message);
       } else {
-        Alert.alert('✅ Administrador creado', `${newEmail.trim()} ahora es administrador.`);
+        Alert.alert('Administrador creado', `${newEmail.trim()} ahora es administrador.`);
         setNewEmail(''); setNewPassword(''); setNewName('');
         load();
       }
@@ -136,7 +140,7 @@ function UsersSection() {
   return (
     <View style={{ gap: 8 }}>
       <View style={styles.createBox}>
-        <Text style={styles.createTitle}>➕ Crear admin</Text>
+        <Text style={styles.createTitle}>Crear administrador</Text>
         <TextInput style={styles.input} placeholder="Correo @konradlorenz.edu.co" placeholderTextColor={Colors.subtitle} value={newEmail} onChangeText={setNewEmail} autoCapitalize="none" editable={!creating} />
         <TextInput style={styles.input} placeholder="Nombre completo" placeholderTextColor={Colors.subtitle} value={newName} onChangeText={setNewName} editable={!creating} />
         <TextInput style={styles.input} placeholder="Contraseña" placeholderTextColor={Colors.subtitle} value={newPassword} onChangeText={setNewPassword} secureTextEntry editable={!creating} />
@@ -149,13 +153,13 @@ function UsersSection() {
         <View key={u.id} style={styles.item}>
           <View style={{ flex: 1 }}>
             <Text style={styles.itemTitle}>{u.full_name || u.email}</Text>
-            <Text style={styles.itemMeta}>{u.email} · {u.role} {u.is_banned ? '🚫 BLOQUEADO' : ''}</Text>
+            <Text style={styles.itemMeta}>{u.email} · {u.role} {u.is_banned ? 'BLOQUEADO' : ''}</Text>
           </View>
           <Pressable onPress={() => toggleRole(u.id, u.role)} style={styles.actionBtn}>
-            <Text style={{ color: Colors.primary, fontSize: 11 }}>{u.role === 'admin' ? '⬇ User' : '⬆ Admin'}</Text>
+            <Text style={{ color: Colors.primary, fontSize: 11 }}>{u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</Text>
           </Pressable>
           <Pressable onPress={() => toggleBan(u.id, u.is_banned)} style={styles.actionBtn}>
-            <Text style={{ color: u.is_banned ? Colors.success : Colors.danger, fontSize: 11 }}>{u.is_banned ? '✅ Activar' : '🚫 Bloquear'}</Text>
+            <Text style={{ color: u.is_banned ? Colors.success : Colors.danger, fontSize: 11 }}>{u.is_banned ? 'Activar' : 'Bloquear'}</Text>
           </Pressable>
         </View>
       ))}
@@ -203,18 +207,18 @@ function EventsSection() {
       <TextInput style={styles.input} placeholder="Título" placeholderTextColor={Colors.subtitle} value={title} onChangeText={setTitle} />
       <TextInput style={styles.input} placeholder="Descripción" placeholderTextColor={Colors.subtitle} value={description} onChangeText={setDescription} multiline />
       <TextInput style={styles.input} placeholder="Fecha (YYYY-MM-DD)" placeholderTextColor={Colors.subtitle} value={eventDate} onChangeText={setEventDate} />
-      <Pressable style={styles.addBtn} onPress={addEvent}><Text style={styles.addBtnText}>+ Crear evento</Text></Pressable>
+      <Pressable style={styles.addBtn} onPress={addEvent}><Text style={styles.addBtnText}>Crear evento</Text></Pressable>
       {events.map((e) => (
         <View key={e.id} style={styles.item}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.itemTitle}>{e.title} {e.is_restricted ? '🔒' : ''}</Text>
+            <Text style={styles.itemTitle}>{e.title} {e.is_restricted ? '(restringido)' : ''}</Text>
             <Text style={styles.itemMeta}>{e.event_date}</Text>
           </View>
           <Pressable onPress={() => toggleRestrict(e.id, e.is_restricted)} style={styles.actionBtn}>
-            <Text style={{ color: Colors.primary, fontSize: 11 }}>{e.is_restricted ? '🔓 Público' : '🔒 Restringir'}</Text>
+            <Text style={{ color: Colors.primary, fontSize: 11 }}>{e.is_restricted ? 'Hacer público' : 'Restringir'}</Text>
           </Pressable>
           <Pressable onPress={() => deleteEvent(e.id)} style={styles.actionBtn}>
-            <Text style={{ color: Colors.danger, fontSize: 12 }}>🗑</Text>
+            <Ionicons name="trash-outline" size={18} color={Colors.danger} />
           </Pressable>
         </View>
       ))}
@@ -224,13 +228,21 @@ function EventsSection() {
 
 // ---------- Main Admin Panel ----------
 
-export function AdminScreen() {
+type AdminScreenProps = NativeStackScreenProps<RootStackParamList, 'Admin'>;
+
+export function AdminScreen({ navigation }: AdminScreenProps) {
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('posts');
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Panel de Administración</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Panel de Administración</Text>
+      </View>
       <View style={styles.tabs}>
         {(['posts', 'users', 'events'] as Tab[]).map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} style={[styles.tab, tab === t && styles.tabActive]}>
@@ -243,11 +255,9 @@ export function AdminScreen() {
       <FlatList
         key={refreshKey}
         contentContainerStyle={{ padding: 16, gap: 8 }}
-        ListHeaderComponent={
-          <View style={{ marginBottom: 8 }} />
-        }
         data={[]}
         renderItem={() => null}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={() => setRefreshKey((k) => k + 1)} colors={[Colors.primary]} />}
         ListEmptyComponent={
           tab === 'posts' ? <PostsSection onRefresh={() => setRefreshKey((k) => k + 1)} /> :
           tab === 'users' ? <UsersSection /> :
@@ -260,8 +270,10 @@ export function AdminScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: { fontSize: 18, fontWeight: '700', color: Colors.text, padding: 16, fontFamily: Fonts.family },
-  tabs: { flexDirection: 'row', paddingHorizontal: 16, gap: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 8, backgroundColor: Colors.card },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text, fontFamily: Fonts.family, marginLeft: 4 },
+  tabs: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingVertical: 4 },
   tab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: Colors.border },
   tabActive: { backgroundColor: Colors.primary },
   tabText: { fontSize: 13, fontWeight: '500', color: Colors.text, fontFamily: Fonts.family },

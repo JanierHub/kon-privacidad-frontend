@@ -61,12 +61,11 @@ export function ScheduleScreen() {
       renderItem={({ item }) => (
         <View style={styles.card}>
           <Text style={styles.subject}>{item.subject}</Text>
-          {item.professor ? <Text style={styles.prof}>👤 {item.professor}</Text> : null}
-          <View style={styles.row}>
-            <Text style={styles.meta}>📅 {item.day_of_week}</Text>
-            <Text style={styles.meta}>🕐 {item.start_time} - {item.end_time}</Text>
-          </View>
-          {item.classroom ? <Text style={styles.meta}>📍 {item.classroom}</Text> : null}
+{item.professor ? <Text style={styles.prof}>{item.professor}</Text> : null}
+
+            <Text style={styles.meta}>{item.day_of_week}</Text>
+            <Text style={styles.meta}>{item.start_time} - {item.end_time}</Text>
+          {item.classroom ? <Text style={styles.meta}>{item.classroom}</Text> : null}
         </View>
       )}
     />

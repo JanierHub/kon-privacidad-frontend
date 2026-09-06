@@ -71,7 +71,7 @@ export function HomeScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
       renderItem={({ item }) => (
         <View style={styles.card}>
-          {item.is_pinned && <Text style={styles.pinned}>📌 Fijado</Text>}
+          {item.is_pinned && <Text style={styles.pinned}>Fijado</Text>}
           <Text style={styles.title}>{item.title}</Text>
           {item.content ? <Text style={styles.content}>{item.content}</Text> : null}
           <View style={styles.footer}>

@@ -12,11 +12,7 @@ export function RootNavigator() {
     <RootStack.Navigator initialRouteName="Auth" screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Auth" component={AuthScreen} />
       <RootStack.Screen name="MainTabs" component={TabNavigator} />
-      <RootStack.Screen
-        name="Admin"
-        component={AdminScreen}
-        options={{ headerShown: true, title: 'Admin', headerTintColor: '#1A73E8' }}
-      />
+      <RootStack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />
     </RootStack.Navigator>
   );
 }
