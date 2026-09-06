@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(219, 1, 96, 0.88)',
+    backgroundColor: 'rgba(26, 115, 232, 0.88)',
   },
   flex: {
     flex: 1,

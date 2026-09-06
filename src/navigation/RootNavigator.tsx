@@ -15,7 +15,7 @@ export function RootNavigator() {
       <RootStack.Screen
         name="Admin"
         component={AdminScreen}
-        options={{ headerShown: true, title: 'Admin', headerTintColor: '#DB0160' }}
+        options={{ headerShown: true, title: 'Admin', headerTintColor: '#1A73E8' }}
       />
     </RootStack.Navigator>
   );

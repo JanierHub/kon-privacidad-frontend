@@ -4,15 +4,14 @@ import { Platform } from 'react-native';
 /**
  * Central navigation theming.
  *
- * Colors are based on the Fundación Universitaria Konrad Lorenz brand:
- * primary pink (#DB0160) and dark (#56226c).
+ * Colors based on a blue institutional palette.
  */
 
 export const Colors = {
-  /** Brand / primary accent — Konrad Lorenz pink. */
-  primary: '#DB0160',
-  /** Dark accent — Konrad Lorenz deep purple. */
-  dark: '#56226C',
+  /** Brand / primary accent — institutional blue. */
+  primary: '#1A73E8',
+  /** Dark accent — deep navy. */
+  dark: '#0D47A1',
   /** Background used behind screens and navigation chrome. */
   background: '#FFFFFF',
   /** Surface color for cards and raised elements. */

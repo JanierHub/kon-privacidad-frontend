@@ -45,11 +45,13 @@ serve(async (req) => {
     `;
 
     if (!RESEND_API_KEY) {
-      console.log("RESEND_API_KEY not set — skipping email. Would send to:", email);
+      console.log("RESEND_API_KEY not set - skipping email. Would send to:", email);
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    const FROM = Deno.env.get("RESEND_FROM") ?? "onboarding@resend.dev";
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -58,7 +60,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Kon-Privacidad <notificaciones@konradlorenz.edu.co>",
+        from: FROM,
         to: [email],
         subject: "🔔 Nuevo inicio de sesión — Kon-Privacidad",
         html,
