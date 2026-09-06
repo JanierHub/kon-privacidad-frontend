@@ -20,6 +20,14 @@ export function ProfileScreen({ navigation }: any) {
       setFullName(meta?.full_name ?? '');
       setRole(meta?.role ?? 'user');
       setLastSignIn(meta?.last_sign_in ?? '');
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user?.id)
+        .single();
+      if (profile?.role) {
+        setRole(profile.role);
+      }
       setLoading(false);
     })();
   }, []);

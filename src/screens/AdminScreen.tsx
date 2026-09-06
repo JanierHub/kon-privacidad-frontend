@@ -80,6 +80,10 @@ function PostsSection({ onRefresh }: { onRefresh: () => void }) {
 function UsersSection() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from('profiles').select('id, email, full_name, role, is_banned').order('created_at', { ascending: false });
@@ -87,6 +91,34 @@ function UsersSection() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const createAdmin = async () => {
+    if (!newEmail.trim() || !newPassword.trim()) {
+      Alert.alert('Campos requeridos', 'Ingresa el correo y la contraseña del nuevo administrador.');
+      return;
+    }
+    if (!newPassword.trim() || newPassword.trim().length < 6) {
+      Alert.alert('Contraseña muy corta', 'La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    setCreating(true);
+    try {
+      const { error } = await supabase.functions.invoke('create-admin-user', {
+        body: { email: newEmail.trim(), password: newPassword.trim(), full_name: newName.trim() },
+      });
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('✅ Administrador creado', `${newEmail.trim()} ahora es administrador.`);
+        setNewEmail(''); setNewPassword(''); setNewName('');
+        load();
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'No se pudo crear el usuario.');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const toggleBan = async (id: string, current: boolean) => {
     await supabase.from('profiles').update({ is_banned: !current }).eq('id', id);
@@ -102,7 +134,17 @@ function UsersSection() {
   if (loading) return <Text style={styles.placeholder}>Cargando usuarios...</Text>;
 
   return (
-    <View style={{ gap: 4 }}>
+    <View style={{ gap: 8 }}>
+      <View style={styles.createBox}>
+        <Text style={styles.createTitle}>➕ Crear admin</Text>
+        <TextInput style={styles.input} placeholder="Correo @konradlorenz.edu.co" placeholderTextColor={Colors.subtitle} value={newEmail} onChangeText={setNewEmail} autoCapitalize="none" editable={!creating} />
+        <TextInput style={styles.input} placeholder="Nombre completo" placeholderTextColor={Colors.subtitle} value={newName} onChangeText={setNewName} editable={!creating} />
+        <TextInput style={styles.input} placeholder="Contraseña" placeholderTextColor={Colors.subtitle} value={newPassword} onChangeText={setNewPassword} secureTextEntry editable={!creating} />
+        <Pressable style={styles.addBtn} onPress={createAdmin} disabled={creating}>
+          <Text style={styles.addBtnText}>{creating ? 'Creando...' : 'Crear usuario admin'}</Text>
+        </Pressable>
+      </View>
+
       {users.map((u) => (
         <View key={u.id} style={styles.item}>
           <View style={{ flex: 1 }}>
@@ -232,4 +274,6 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: 14, fontWeight: '600', color: Colors.text, fontFamily: Fonts.family },
   itemMeta: { fontSize: 12, color: Colors.subtitle, marginTop: 2, fontFamily: Fonts.family },
   actionBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  createBox: { backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.primary, borderRadius: 12, padding: 12, gap: 8, marginBottom: 8 },
+  createTitle: { fontSize: 14, fontWeight: '700', color: Colors.primary, fontFamily: Fonts.family },
 });
