@@ -66,6 +66,14 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
     if (data.user) {
       const now = new Date().toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
       await supabase.auth.updateUser({ data: { last_sign_in: now } });
+      supabase.functions.invoke('send-login-notification', {
+        body: {
+          user_id: data.user.id,
+          email: data.user.email,
+          full_name: data.user.user_metadata?.full_name ?? '',
+          sign_in_time: now,
+        },
+      }).catch(() => {});
     }
     enterApp();
   };
