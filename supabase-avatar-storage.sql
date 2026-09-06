@@ -13,6 +13,8 @@ VALUES ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Storage policies
+-- NOTE: storage.foldername includes the bucket as first element,
+-- so the user folder is element [2] for paths like avatars/<uid>/<file>.
 CREATE POLICY "Avatars: public read"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'avatars');
@@ -22,13 +24,13 @@ CREATE POLICY "Avatars: authenticated upload own folder"
   WITH CHECK (
     bucket_id = 'avatars'
     AND auth.role() = 'authenticated'
-    AND (storage.foldername(name))[1] = auth.uid()::text
+    AND (storage.foldername(name))[2] = auth.uid()::text
   );
 
 CREATE POLICY "Avatars: owner update"
   ON storage.objects FOR UPDATE
-  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[2] = auth.uid()::text);
 
 CREATE POLICY "Avatars: owner delete"
   ON storage.objects FOR DELETE
-  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[2] = auth.uid()::text);

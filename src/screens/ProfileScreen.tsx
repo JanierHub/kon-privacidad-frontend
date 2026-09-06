@@ -133,11 +133,13 @@ export function ProfileScreen({ navigation }: any) {
 
       <View style={styles.actions}>
         {role === 'admin' && (
-          <View style={{ marginBottom: 12 }}>
-            <AppButton label="Panel de Administración" onPress={goAdmin} fit />
+          <View style={styles.btnWrap}>
+            <AppButton label="Panel de Administración" onPress={goAdmin} />
           </View>
         )}
-        <AppButton label="Cerrar sesión" variant="secondary" fit onPress={handleLogout} />
+        <View style={styles.btnWrap}>
+          <AppButton label="Cerrar sesión" variant="secondary" onPress={handleLogout} />
+        </View>
       </View>
     </View>
   );
@@ -166,5 +168,6 @@ const styles = StyleSheet.create({
   role: { fontSize: 13, color: Colors.primary, textAlign: 'center', marginTop: 6, fontWeight: '600', fontFamily: Fonts.family },
   lastSignIn: { fontSize: 12, color: Colors.subtitle, textAlign: 'center', marginTop: 8, fontStyle: 'italic', fontFamily: Fonts.family },
   divider: { height: 1, backgroundColor: Colors.border, marginVertical: 24 },
-  actions: { alignItems: 'flex-start' },
+  actions: { width: '100%', alignItems: 'center' },
+  btnWrap: { width: 260, marginBottom: 12 },
 });
