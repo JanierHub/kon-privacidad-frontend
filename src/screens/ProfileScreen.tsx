@@ -1,6 +1,7 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../components/AppButton';
 import { Colors, Fonts } from '../navigation/theme';
@@ -173,18 +174,28 @@ export function ProfileScreen({ navigation }: any) {
 
       <View style={styles.divider} />
 
-      <View style={styles.actions}>
+      <View style={styles.panel}>
         {role === 'admin' && (
-          <View style={styles.btnWrap}>
-            <AppButton label="Panel de Administración" onPress={goAdmin} fit />
-          </View>
+          <>
+            <Pressable style={styles.panelRow} onPress={goAdmin}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={Colors.primary} />
+              <Text style={[styles.panelText, styles.panelTextPrimary]}>Panel de Administración</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.subtitle} />
+            </Pressable>
+            <View style={styles.panelSeparator} />
+          </>
         )}
-        <View style={styles.btnWrap}>
-          <AppButton label="Cerrar sesión" variant="secondary" onPress={handleLogout} fit />
-        </View>
-        <View style={styles.btnWrap}>
-          <AppButton label="Eliminar cuenta" variant="danger" fit onPress={handleDeleteAccount} loading={deleting} />
-        </View>
+        <Pressable style={styles.panelRow} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color={Colors.primary} />
+          <Text style={styles.panelText}>Cerrar sesión</Text>
+          <Ionicons name="chevron-forward" size={18} color={Colors.subtitle} />
+        </Pressable>
+        <View style={styles.panelSeparator} />
+        <Pressable style={styles.panelRow} onPress={handleDeleteAccount}>
+          <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+          <Text style={[styles.panelText, styles.panelTextDanger]}>Eliminar cuenta</Text>
+          <Ionicons name="chevron-forward" size={18} color={Colors.subtitle} />
+        </Pressable>
       </View>
     </View>
   );
@@ -213,6 +224,22 @@ const styles = StyleSheet.create({
   role: { fontSize: 13, color: Colors.primary, textAlign: 'center', marginTop: 6, fontWeight: '600', fontFamily: Fonts.family },
   lastSignIn: { fontSize: 12, color: Colors.subtitle, textAlign: 'center', marginTop: 8, fontStyle: 'italic', fontFamily: Fonts.family },
   divider: { height: 1, backgroundColor: Colors.border, marginVertical: 24 },
-  actions: { width: '100%', alignItems: 'center' },
-  btnWrap: { width: 260, marginBottom: 12 },
+  panel: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: Colors.card,
+  },
+  panelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  panelSeparator: { height: 1, backgroundColor: Colors.border },
+  panelText: { flex: 1, fontSize: 16, color: Colors.text, fontFamily: Fonts.family },
+  panelTextPrimary: { color: Colors.primary, fontWeight: '600' },
+  panelTextDanger: { color: Colors.danger, fontWeight: '600' },
 });
