@@ -5,8 +5,8 @@ import { Colors, Fonts } from '../navigation/theme';
 type AppButtonProps = {
   /** Spanish label shown inside the button. */
   label: string;
-  /** Visual style; primary is filled, secondary is outlined. */
-  variant?: 'primary' | 'secondary';
+  /** Visual style; primary is filled, secondary is outlined, danger is red. */
+  variant?: 'primary' | 'secondary' | 'danger';
   /** Called when the button is pressed. */
   onPress?: () => void;
   /** Shows a spinner and disables taps while an async action runs. */
@@ -16,11 +16,12 @@ type AppButtonProps = {
 };
 
 /**
- * Shared app button with primary (filled) and secondary (outlined)
- * variants. Uses Pressable so it gives visual feedback while pressed.
+ * Shared app button with primary (filled), secondary (outlined) and danger
+ * (red) variants. Uses Pressable so it gives visual feedback while pressed.
  */
 export function AppButton({ label, variant = 'primary', onPress, loading = false, fit = false }: AppButtonProps) {
   const isPrimary = variant === 'primary';
+  const isDanger = variant === 'danger';
 
   return (
     <Pressable
@@ -28,16 +29,18 @@ export function AppButton({ label, variant = 'primary', onPress, loading = false
       disabled={loading}
       style={({ pressed }) => [
         styles.button,
-        isPrimary ? styles.primary : styles.secondary,
+        variant === 'primary' && styles.primary,
+        variant === 'secondary' && styles.secondary,
+        isDanger && styles.danger,
         fit && styles.fit,
         pressed && styles.pressed,
         loading && styles.disabled,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#FFFFFF' : Colors.primary} />
+        <ActivityIndicator color={isDanger ? '#FFFFFF' : isPrimary ? '#FFFFFF' : Colors.primary} />
       ) : (
-        <Text style={[styles.label, isPrimary ? styles.primaryLabel : styles.secondaryLabel]}>
+        <Text style={[styles.label, isDanger ? styles.dangerLabel : isPrimary ? styles.primaryLabel : styles.secondaryLabel]}>
           {label}
         </Text>
       )}
@@ -64,6 +67,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: Colors.primary,
+  },
+  danger: {
+    backgroundColor: Colors.danger,
+  },
+  dangerLabel: {
+    color: '#FFFFFF',
   },
   pressed: {
     opacity: 0.8,

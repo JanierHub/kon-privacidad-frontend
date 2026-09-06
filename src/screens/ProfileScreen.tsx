@@ -14,6 +14,7 @@ export function ProfileScreen({ navigation }: any) {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [lastSignIn, setLastSignIn] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -76,7 +77,9 @@ export function ProfileScreen({ navigation }: any) {
     setUploading(true);
     try {
       const { base64 } = result.assets[0];
-      const path = `avatars/${userId}/avatar.jpg`;
+      const folder = `avatars/${userId}`;
+      const fileName = `avatar-${Date.now()}.jpg`;
+      const path = `${folder}/${fileName}`;
       const { error: upErr } = await supabase.storage
         .from('avatars')
         .upload(path, decode(base64), {
@@ -91,12 +94,51 @@ export function ProfileScreen({ navigation }: any) {
       const url = pub?.publicUrl ?? '';
       await supabase.from('profiles').update({ avatar_url: url }).eq('id', userId);
       setAvatarUrl(url);
+      const { data: files } = await supabase.storage.from('avatars').list(userId);
+      if (files?.length) {
+        const oldFiles = files
+          .filter((f) => f.name !== fileName && (f.metadata?.mimetype ?? '').startsWith('image'))
+          .map((f) => `${folder}/${f.name}`);
+        if (oldFiles.length) {
+          await supabase.storage.from('avatars').remove(oldFiles).catch(() => {});
+        }
+      }
       Alert.alert('Foto guardada', 'Tu foto de perfil fue actualizada.');
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'No se pudo subir la foto.');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Eliminar cuenta',
+      'Esta acción es permanente: se eliminará tu cuenta, tus publicaciones y tus datos. ¿Deseas continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const { error } = await supabase.functions.invoke('delete-account', { body: {} });
+              if (error) {
+                Alert.alert('Error', error.message);
+                return;
+              }
+              await supabase.auth.signOut();
+              navigation.getParent()?.getParent()?.navigate('Auth');
+            } catch (e: any) {
+              Alert.alert('Error', e.message ?? 'No se pudo eliminar la cuenta.');
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -134,11 +176,14 @@ export function ProfileScreen({ navigation }: any) {
       <View style={styles.actions}>
         {role === 'admin' && (
           <View style={styles.btnWrap}>
-            <AppButton label="Panel de Administración" onPress={goAdmin} />
+            <AppButton label="Panel de Administración" onPress={goAdmin} fit />
           </View>
         )}
         <View style={styles.btnWrap}>
-          <AppButton label="Cerrar sesión" variant="secondary" onPress={handleLogout} />
+          <AppButton label="Cerrar sesión" variant="secondary" onPress={handleLogout} fit />
+        </View>
+        <View style={styles.btnWrap}>
+          <AppButton label="Eliminar cuenta" variant="danger" fit onPress={handleDeleteAccount} loading={deleting} />
         </View>
       </View>
     </View>

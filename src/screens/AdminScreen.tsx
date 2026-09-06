@@ -135,6 +135,29 @@ function UsersSection() {
     load();
   };
 
+  const deleteUser = async (id: string, email: string) => {
+    Alert.alert(
+      'Eliminar cuenta',
+      `¿Eliminar la cuenta de ${email}? Esta acción es permanente: se borrarán también sus publicaciones y datos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.functions.invoke('delete-account', {
+              body: { target_id: id },
+            });
+            if (error) {
+              Alert.alert('Error', error.message);
+            }
+            load();
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) return <Text style={styles.placeholder}>Cargando usuarios...</Text>;
 
   return (
@@ -160,6 +183,9 @@ function UsersSection() {
           </Pressable>
           <Pressable onPress={() => toggleBan(u.id, u.is_banned)} style={styles.actionBtn}>
             <Text style={{ color: u.is_banned ? Colors.success : Colors.danger, fontSize: 11 }}>{u.is_banned ? 'Activar' : 'Bloquear'}</Text>
+          </Pressable>
+          <Pressable onPress={() => deleteUser(u.id, u.email)} style={styles.actionBtn}>
+            <Ionicons name="trash-outline" size={18} color={Colors.danger} />
           </Pressable>
         </View>
       ))}
