@@ -54,7 +54,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -63,12 +63,23 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
       Alert.alert('Error al iniciar sesión', error.message);
       return;
     }
+    if (data.user) {
+      const now = new Date().toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+      await supabase.auth.updateUser({ data: { last_sign_in: now } });
+    }
     enterApp();
   };
 
   const handleSignUp = async () => {
     if (!email.trim() || !password) {
       Alert.alert('Campos requeridos', 'Ingresa tu correo y una contraseña.');
+      return;
+    }
+    if (!email.trim().endsWith('@konradlorenz.edu.co')) {
+      Alert.alert(
+        'Correo no válido',
+        'Solo se permiten correos institucionales @konradlorenz.edu.co'
+      );
       return;
     }
     if (password.length < 6) {
@@ -127,7 +138,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
               style={styles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="Correo institucional"
+              placeholder={isLogin ? 'Correo institucional' : 'Correo @konradlorenz.edu.co'}
               placeholderTextColor={Colors.subtitle}
               autoCapitalize="none"
               keyboardType="email-address"

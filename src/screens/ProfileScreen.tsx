@@ -9,6 +9,7 @@ export function ProfileScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('user');
+  const [lastSignIn, setLastSignIn] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export function ProfileScreen({ navigation }: any) {
       const meta = data.user?.user_metadata;
       setFullName(meta?.full_name ?? '');
       setRole(meta?.role ?? 'user');
+      setLastSignIn(meta?.last_sign_in ?? '');
       setLoading(false);
     })();
   }, []);
@@ -58,6 +60,10 @@ export function ProfileScreen({ navigation }: any) {
       <Text style={styles.email}>{email}</Text>
       {role === 'admin' && <Text style={styles.role}>👑 Administrador</Text>}
 
+      {lastSignIn ? (
+        <Text style={styles.lastSignIn}>Último ingreso: {lastSignIn}</Text>
+      ) : null}
+
       <View style={styles.divider} />
 
       {role === 'admin' && (
@@ -72,26 +78,14 @@ export function ProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 24, paddingTop: 40 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   placeholder: { color: Colors.subtitle, fontFamily: Fonts.family },
-  avatar: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.primary,
-    justifyContent: 'center', alignItems: 'center', alignSelf: 'center',
-  },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center', alignSelf: 'center' },
   avatarText: { color: '#FFFFFF', fontSize: 32, fontWeight: '700', fontFamily: Fonts.family },
   name: { fontSize: 20, fontWeight: '600', color: Colors.text, textAlign: 'center', marginTop: 16, fontFamily: Fonts.family },
   email: { fontSize: 14, color: Colors.subtitle, textAlign: 'center', marginTop: 4, fontFamily: Fonts.family },
   role: { fontSize: 13, color: Colors.primary, textAlign: 'center', marginTop: 6, fontWeight: '600', fontFamily: Fonts.family },
+  lastSignIn: { fontSize: 12, color: Colors.subtitle, textAlign: 'center', marginTop: 8, fontStyle: 'italic', fontFamily: Fonts.family },
   divider: { height: 1, backgroundColor: Colors.border, marginVertical: 24 },
 });
