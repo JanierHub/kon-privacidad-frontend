@@ -27,15 +27,18 @@ type Mode = 'login' | 'register';
  *
  * Two modes toggled at the bottom:
  *   • Iniciar sesión — signInWithPassword
- *   • Registrarse    — signUp (sends confirmation email)
- *
- * On mount, if a session already exists the user goes straight to the tabs.
+ *   • Registrar     — signUp, then a verification code sent by email
+ *                     must be entered ("send-verification-code" / "verify-verification-code").
  */
 export function AuthScreen({ navigation }: AuthScreenProps) {
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const [verifying, setVerifying] = useState(false);
+  const [code, setCode] = useState('');
+  const [sendingCode, setSendingCode] = useState(false);
 
   const enterApp = () =>
     navigation.navigate('MainTabs', { screen: 'HomeTab', params: { screen: 'HomeMain' } });
@@ -78,6 +81,25 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
     enterApp();
   };
 
+  const sendCode = async () => {
+    setSendingCode(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-verification-code', {
+        body: { email: email.trim() },
+      });
+      if (error) {
+        Alert.alert('Error', error.message);
+        return false;
+      }
+      return true;
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'No se pudo enviar el código.');
+      return false;
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
   const handleSignUp = async () => {
     if (!email.trim() || !password) {
       Alert.alert('Campos requeridos', 'Ingresa tu correo y una contraseña.');
@@ -95,7 +117,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
     });
@@ -104,22 +126,49 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
       Alert.alert('Error al registrarse', error.message);
       return;
     }
-    Alert.alert(
-      'Cuenta creada',
-      'Revisa tu correo para confirmar el registro. Luego inicia sesión.'
-    );
+    if (data.session) {
+      enterApp();
+      return;
+    }
+    const sent = await sendCode();
+    if (sent) {
+      setCode('');
+      setVerifying(true);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (code.trim().length < 4) {
+      Alert.alert('Código requerido', 'Ingresa el código que llegó a tu correo.');
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.functions.invoke('verify-verification-code', {
+      body: { email: email.trim(), code: code.trim() },
+    });
+    setSubmitting(false);
+    if (error) {
+      Alert.alert('Código inválido', error.message);
+      return;
+    }
+    setVerifying(false);
     setMode('login');
+    Alert.alert(
+      'Correo confirmado',
+      'Tu registro fue confirmado correctamente. Ahora puedes iniciar sesión.'
+    );
   };
 
   const handleSubmit = () => {
-    if (mode === 'login') {
+    if (isLoginForm) {
       handleSignIn();
     } else {
       handleSignUp();
     }
   };
 
-  const isLogin = mode === 'login';
+  const isLoginForm = !verifying && mode === 'login';
+  const isRegisterForm = !verifying && mode === 'register';
 
   return (
     <ImageBackground
@@ -139,55 +188,117 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
             resizeMode="contain"
           />
           <Text style={styles.brand}>Kon-Privacidad</Text>
-          <Text style={styles.subtitle}>Tu red social privada universitaria</Text>
+          <Text style={styles.subtitle}>
+            {verifying
+              ? 'Confirma tu registro'
+              : isLoginForm
+                ? 'Inicia sesión en tu cuenta'
+                : 'Crea tu cuenta universitaria'}
+          </Text>
 
-          <View style={styles.card}>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder={isLogin ? 'Correo institucional' : 'Correo @konradlorenz.edu.co'}
-              placeholderTextColor={Colors.subtitle}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              editable={!submitting}
-            />
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Contraseña"
-              placeholderTextColor={Colors.subtitle}
-              secureTextEntry
-              editable={!submitting}
-            />
+          {verifying ? (
+            <View style={styles.card}>
+              <Text style={styles.cardHint}>
+                Enviamos un código de 6 dígitos a{' '}
+                <Text style={styles.cardHintAccent}>{email}</Text>. Escríbelo aquí:
+              </Text>
+              <TextInput
+                style={[styles.input, styles.codeInput]}
+                value={code}
+                onChangeText={setCode}
+                placeholder="Código"
+                placeholderTextColor={Colors.subtitle}
+                keyboardType="number-pad"
+                maxLength={6}
+                editable={!submitting}
+              />
+              <Pressable
+                onPress={handleVerify}
+                disabled={submitting}
+                style={({ pressed }) => [
+                  styles.submitBtn,
+                  styles.registerBtn,
+                  pressed && styles.submitBtnPressed,
+                  submitting && styles.submitBtnDisabled,
+                ]}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.submitLabel}>Confirmar registro</Text>
+                )}
+              </Pressable>
+              <Pressable
+                onPress={async () => { await sendCode(); }}
+                disabled={sendingCode}
+                style={styles.linkBtn}
+              >
+                <Text style={styles.linkText}>
+                  {sendingCode ? 'Enviando...' : 'Reenviar código'}
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => setVerifying(false)} style={styles.linkBtn}>
+                <Text style={styles.linkText}>Cambiar correo</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.card}>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder={mode === 'login' ? 'Correo institucional' : 'Correo @konradlorenz.edu.co'}
+                placeholderTextColor={Colors.subtitle}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                editable={!submitting}
+              />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Contraseña"
+                placeholderTextColor={Colors.subtitle}
+                secureTextEntry
+                editable={!submitting}
+              />
 
-            <Pressable
-              onPress={handleSubmit}
-              disabled={submitting}
-              style={({ pressed }) => [
-                styles.submitBtn,
-                pressed && styles.submitBtnPressed,
-                submitting && styles.submitBtnDisabled,
-              ]}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.submitLabel}>
-                  {isLogin ? 'Iniciar sesión' : 'Registrarse'}
+              <Pressable
+                onPress={handleSubmit}
+                disabled={submitting}
+                style={({ pressed }) => [
+                  styles.submitBtn,
+                  mode === 'register' && styles.registerBtn,
+                  pressed && styles.submitBtnPressed,
+                  submitting && styles.submitBtnDisabled,
+                ]}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.submitLabel}>
+                    {mode === 'login' ? 'Iniciar sesión' : 'Registrar'}
+                  </Text>
+                )}
+              </Pressable>
+
+              {mode === 'register' && (
+                <Text style={styles.hint}>
+                  Al registrarte se crea tu cuenta y se envía un código de confirmación a tu correo.
                 </Text>
               )}
-            </Pressable>
-          </View>
+            </View>
+          )}
 
-          <Pressable onPress={() => setMode(isLogin ? 'register' : 'login')}>
-            <Text style={styles.toggle}>
-              {isLogin
-                ? '¿No tienes cuenta? Regístrate aquí'
-                : '¿Ya tienes cuenta? Inicia sesión'}
-            </Text>
-          </Pressable>
+          {!verifying && (
+            <Pressable onPress={() => setMode(mode === 'login' ? 'register' : 'login')}>
+              <Text style={styles.toggle}>
+                {mode === 'login'
+                  ? '¿No tienes cuenta? Regístrate aquí'
+                  : '¿Ya tienes cuenta? Inicia sesión'}
+              </Text>
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </ImageBackground>
@@ -195,26 +306,14 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-  },
+  background: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(26, 115, 232, 0.88)',
   },
-  flex: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  logo: {
-    width: 240,
-    height: 100,
-    alignSelf: 'center',
-  },
+  flex: { flex: 1 },
+  container: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  logo: { width: 240, height: 100, alignSelf: 'center' },
   brand: {
     color: '#FFFFFF',
     fontSize: 30,
@@ -224,7 +323,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.family,
   },
   subtitle: {
-    color: 'rgba(255, 255, 255, 0.88)',
+    color: 'rgba(255, 255, 255, 0.92)',
     fontSize: 14,
     textAlign: 'center',
     marginTop: 6,
@@ -232,11 +331,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.family,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.97)',
     borderRadius: 16,
     padding: 20,
     gap: 12,
   },
+  cardHint: { fontSize: 13, color: Colors.subtitle, lineHeight: 18, fontFamily: Fonts.family },
+  cardHintAccent: { color: Colors.primary, fontWeight: '600' },
   input: {
     backgroundColor: '#F3F4F6',
     borderRadius: 10,
@@ -246,6 +347,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontFamily: Fonts.family,
   },
+  codeInput: { textAlign: 'center', fontSize: 22, letterSpacing: 8 },
   submitBtn: {
     backgroundColor: Colors.primary,
     borderRadius: 10,
@@ -254,18 +356,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 4,
   },
-  submitBtnPressed: {
-    opacity: 0.8,
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
+  registerBtn: { backgroundColor: Colors.dark },
+  submitBtnPressed: { opacity: 0.8 },
+  submitBtnDisabled: { opacity: 0.6 },
   submitLabel: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
     fontFamily: Fonts.family,
   },
+  linkBtn: { alignItems: 'center', paddingVertical: 6 },
+  linkText: { color: Colors.primary, fontSize: 14, textDecorationLine: 'underline', fontFamily: Fonts.family },
+  hint: { fontSize: 12, color: Colors.subtitle, textAlign: 'center', fontFamily: Fonts.family },
   toggle: {
     color: '#FFFFFF',
     fontSize: 14,
