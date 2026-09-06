@@ -85,10 +85,12 @@ export type RootTabParamList = {
 /**
  * Root stack param list.
  *
- * The root navigator currently only renders the tab navigator, but
- * keeping it as a stack gives us a natural place to later add
- * authentication, onboarding, or full-screen modals above the tabs.
+ * The root navigator hosts the welcome/auth screen and the tabbed app,
+ * giving us a natural place to later add full-screen flows such as a
+ * real login, onboarding, or modal screens above the tabs.
  */
 export type RootStackParamList = {
+  /** Welcome / login screen shown on launch. */
+  Auth: undefined;
   MainTabs: NavigatorScreenParams<RootTabParamList>;
 };
