@@ -130,11 +130,11 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
       enterApp();
       return;
     }
-    const sent = await sendCode();
-    if (sent) {
-      setCode('');
-      setVerifying(true);
-    }
+    Alert.alert(
+      'Cuenta creada',
+      'Tu cuenta fue creada correctamente. Ahora puedes iniciar sesión.'
+    );
+    setMode('login');
   };
 
   const handleVerify = async () => {
