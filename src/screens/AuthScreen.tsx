@@ -308,7 +308,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
 const styles = StyleSheet.create({
   background: { flex: 1 },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 115, 232, 0.88)',
   },
   flex: { flex: 1 },

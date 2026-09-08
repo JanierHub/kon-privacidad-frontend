@@ -256,7 +256,7 @@ function PostCard({ post }: { post: Post }) {
           player={player}
           style={styles.media}
           contentFit="cover"
-          allowsFullscreen
+          fullscreenOptions={{ enable: true }}
         />
       ) : null}
       <View style={styles.footer}>

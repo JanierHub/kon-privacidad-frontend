@@ -77,7 +77,7 @@ function NewsCard({ post }: { post: Post }) {
         <Image source={{ uri: post.media_url }} style={styles.media} resizeMode="cover" />
       ) : null}
       {post.media_url && post.media_type === 'video' ? (
-        <VideoView player={player} style={styles.media} contentFit="cover" allowsFullscreen />
+        <VideoView player={player} style={styles.media} contentFit="cover" fullscreenOptions={{ enable: true }} />
       ) : null}
       <View style={styles.footer}>
         <Text style={styles.author}>{post.profiles?.full_name || post.profiles?.email || 'Anónimo'}</Text>
