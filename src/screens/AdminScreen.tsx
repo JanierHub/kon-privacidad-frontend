@@ -1,9 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -17,31 +19,110 @@ import { Colors, Fonts } from '../navigation/theme';
 import type { RootStackParamList } from '../navigation/types';
 import { supabase } from '../services/supabase';
 
-type Tab = 'posts' | 'users' | 'events';
+type Tab = 'posts' | 'users' | 'events' | 'schedule';
 
 // ---------- Sub-components for each admin section ----------
+
+type MediaAsset = {
+  type: 'image' | 'video';
+  base64: string;
+  fileName: string;
+  mimeType: string;
+} | null;
+
+function decode(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
 function PostsSection({ onRefresh }: { onRefresh: () => void }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [media, setMedia] = useState<MediaAsset>(null);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     const { data } = await supabase
-      .from('posts').select('id, title, is_hidden, created_at, profiles(full_name)')
+      .from('posts').select('id, title, media_url, media_type, is_hidden, created_at, profiles(full_name)')
       .order('created_at', { ascending: false }).limit(50);
     setPosts(data ?? []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
+  const pickMedia = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permiso requerido', 'Necesitas permitir el acceso a tu galería.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      quality: 0.7,
+      base64: true,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    const isVideo = (asset.type ?? (asset.mimeType ?? '').startsWith('video')) === 'video';
+    if (!asset.base64) {
+      Alert.alert('Error', 'No se pudo leer el archivo seleccionado.');
+      return;
+    }
+    setMedia({
+      type: isVideo ? 'video' : 'image',
+      base64: asset.base64,
+      fileName: asset.fileName ?? `media-${Date.now()}`,
+      mimeType: asset.mimeType ?? (isVideo ? 'video/mp4' : 'image/jpeg'),
+    });
+  };
+
   const addPost = async () => {
     if (!title.trim()) return;
-    const { data: u } = await supabase.auth.getUser();
-    await supabase.from('posts').insert({ user_id: u.user?.id, title: title.trim(), content: content.trim() });
-    setTitle(''); setContent('');
-    load(); onRefresh();
+    setUploading(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const userId = u.user?.id;
+      let mediaUrl = null;
+      let mediaType = null;
+
+      if (media) {
+        const ext = media.mimeType.split('/')[1]?.split(';')[0] || 'jpg';
+        const fileName = `post-${Date.now()}-${Math.round(Math.random() * 1000)}.${ext}`;
+        const path = `${userId}/${fileName}`;
+        const { error: upErr } = await supabase.storage
+          .from('posts-media')
+          .upload(path, decode(media.base64), {
+            contentType: media.mimeType,
+            upsert: true,
+          });
+        if (upErr) {
+          Alert.alert('Error al subir', upErr.message);
+          return;
+        }
+        const { data: pub } = supabase.storage.from('posts-media').getPublicUrl(path);
+        mediaUrl = pub?.publicUrl ?? null;
+        mediaType = media.type;
+      }
+
+      await supabase.from('posts').insert({
+        user_id: userId,
+        title: title.trim(),
+        content: content.trim(),
+        media_url: mediaUrl,
+        media_type: mediaType,
+      });
+      setTitle(''); setContent(''); setMedia(null);
+      Alert.alert('Publicación creada', 'Tu publicación fue creada correctamente.');
+      load(); onRefresh();
+    } finally {
+      setUploading(false);
+    }
   };
 
   const toggleHidden = async (id: string, current: boolean) => {
@@ -60,13 +141,32 @@ function PostsSection({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <View style={{ gap: 8 }}>
-      <TextInput style={styles.input} placeholder="Título" placeholderTextColor={Colors.subtitle} value={title} onChangeText={setTitle} />
-      <TextInput style={styles.input} placeholder="Contenido" placeholderTextColor={Colors.subtitle} value={content} onChangeText={setContent} multiline />
-      <Pressable style={styles.addBtn} onPress={addPost}><Text style={styles.addBtnText}>Crear publicación</Text></Pressable>
+      <TextInput style={styles.input} placeholder="Título" placeholderTextColor={Colors.subtitle} value={title} onChangeText={setTitle} editable={!uploading} />
+      <TextInput style={styles.input} placeholder="Contenido" placeholderTextColor={Colors.subtitle} value={content} onChangeText={setContent} multiline editable={!uploading} />
+
+      <Pressable style={styles.mediaBtn} onPress={pickMedia} disabled={uploading}>
+        <Ionicons name={media ? 'attach' : 'image-outline'} size={18} color={Colors.primary} />
+        <Text style={styles.mediaBtnText}>
+          {media ? `Adjunto: ${media.fileName}` : 'Adjuntar foto o video'}
+        </Text>
+      </Pressable>
+      {media?.type === 'image' ? (
+        <Image source={{ uri: `data:${media.mimeType};base64,${media.base64}` }} style={styles.mediaPreview} resizeMode="cover" />
+      ) : null}
+      {media ? (
+        <Pressable onPress={() => setMedia(null)} style={styles.removeMedia}>
+          <Ionicons name="close-circle" size={18} color={Colors.danger} />
+          <Text style={{ color: Colors.danger, fontSize: 13 }}>Quitar adjunto</Text>
+        </Pressable>
+      ) : null}
+
+      <Pressable style={styles.addBtn} onPress={addPost} disabled={uploading}>
+        <Text style={styles.addBtnText}>{uploading ? 'Creando...' : 'Crear publicación'}</Text>
+      </Pressable>
       {posts.map((p) => (
         <View key={p.id} style={styles.item}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.itemTitle}>{p.title} {p.is_hidden ? '(oculto)' : ''}</Text>
+            <Text style={styles.itemTitle}>{p.title} {p.is_hidden ? '(oculto)' : ''} {p.media_url ? (p.media_type === 'video' ? '🎬' : '🖼️') : ''}</Text>
             <Text style={styles.itemMeta}>{p.profiles?.full_name} · {new Date(p.created_at).toLocaleDateString()}</Text>
           </View>
           <Pressable onPress={() => toggleHidden(p.id, p.is_hidden)} style={styles.actionBtn}>
@@ -252,6 +352,108 @@ function EventsSection() {
   );
 }
 
+// ---------- Schedule image section ----------
+
+function ScheduleSection({ onRefresh }: { onRefresh: () => void }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('schedule_image_url')
+      .eq('key', 'schedule_image')
+      .single();
+    setImageUrl(data?.schedule_image_url ?? null);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const pickImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permiso requerido', 'Necesitas permitir el acceso a tu galería.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      base64: true,
+    });
+    if (result.canceled || !result.assets?.[0]?.base64) return;
+    const asset = result.assets[0];
+    const base64 = asset.base64!;
+    setUploading(true);
+    try {
+      const ext = (asset.mimeType ?? 'image/jpeg').split('/')[1]?.split(';')[0] || 'jpg';
+      const fileName = `schedule-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('schedule-images')
+        .upload(fileName, decode(base64), {
+          contentType: asset.mimeType ?? 'image/jpeg',
+          upsert: true,
+        });
+      if (upErr) {
+        Alert.alert('Error al subir', upErr.message);
+        return;
+      }
+      const { data: pub } = supabase.storage.from('schedule-images').getPublicUrl(fileName);
+      const url = pub?.publicUrl ?? '';
+      await supabase
+        .from('app_settings')
+        .upsert({ key: 'schedule_image', schedule_image_url: url }, { onConflict: 'key' });
+      setImageUrl(url);
+      Alert.alert('Guardado', 'Imagen del horario actualizada.');
+      onRefresh();
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'No se pudo subir la imagen.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = async () => {
+    Alert.alert('Quitar imagen', '¿Eliminar la imagen del horario?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Quitar',
+        style: 'destructive',
+        onPress: async () => {
+          await supabase.from('app_settings').upsert({ key: 'schedule_image', schedule_image_url: null }, { onConflict: 'key' });
+          setImageUrl(null);
+          onRefresh();
+        },
+      },
+    ]);
+  };
+
+  if (loading) return <Text style={styles.placeholder}>Cargando horario...</Text>;
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={styles.createTitle}>Imagen general del horario</Text>
+      <Text style={styles.itemMeta}>Sube una imagen del horario completo para que todos la vean junto a la lista de clases.</Text>
+      {imageUrl ? (
+        <>
+          <Image source={{ uri: imageUrl }} style={styles.mediaPreview} resizeMode="contain" />
+          <Pressable style={styles.addBtn} onPress={pickImage} disabled={uploading}>
+            <Text style={styles.addBtnText}>{uploading ? 'Subiendo...' : 'Cambiar imagen'}</Text>
+          </Pressable>
+          <Pressable onPress={removeImage} style={{ alignItems: 'center', paddingVertical: 4 }}>
+            <Text style={{ color: Colors.danger, fontSize: 14 }}>Quitar imagen</Text>
+          </Pressable>
+        </>
+      ) : (
+        <Pressable style={styles.mediaBtn} onPress={pickImage} disabled={uploading}>
+          <Ionicons name="image-outline" size={18} color={Colors.primary} />
+          <Text style={styles.mediaBtnText}>{uploading ? 'Subiendo...' : 'Subir imagen del horario'}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 // ---------- Main Admin Panel ----------
 
 type AdminScreenProps = NativeStackScreenProps<RootStackParamList, 'Admin'>;
@@ -270,10 +472,10 @@ export function AdminScreen({ navigation }: AdminScreenProps) {
         <Text style={styles.headerTitle}>Panel de Administración</Text>
       </View>
       <View style={styles.tabs}>
-        {(['posts', 'users', 'events'] as Tab[]).map((t) => (
+        {(['posts', 'users', 'events', 'schedule'] as Tab[]).map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} style={[styles.tab, tab === t && styles.tabActive]}>
             <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t === 'posts' ? 'Publicaciones' : t === 'users' ? 'Usuarios' : 'Eventos'}
+              {t === 'posts' ? 'Publicaciones' : t === 'users' ? 'Usuarios' : t === 'events' ? 'Eventos' : 'Horario'}
             </Text>
           </Pressable>
         ))}
@@ -287,7 +489,8 @@ export function AdminScreen({ navigation }: AdminScreenProps) {
         ListEmptyComponent={
           tab === 'posts' ? <PostsSection onRefresh={() => setRefreshKey((k) => k + 1)} /> :
           tab === 'users' ? <UsersSection /> :
-          <EventsSection />
+          tab === 'events' ? <EventsSection /> :
+          <ScheduleSection onRefresh={() => setRefreshKey((k) => k + 1)} />
         }
       />
     </View>
@@ -314,4 +517,8 @@ const styles = StyleSheet.create({
   actionBtn: { paddingHorizontal: 8, paddingVertical: 4 },
   createBox: { backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.primary, borderRadius: 12, padding: 12, gap: 8, marginBottom: 8 },
   createTitle: { fontSize: 14, fontWeight: '700', color: Colors.primary, fontFamily: Fonts.family },
+  mediaBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderStyle: 'dashed', borderRadius: 10, paddingVertical: 12 },
+  mediaBtnText: { color: Colors.primary, fontSize: 14, fontWeight: '600', fontFamily: Fonts.family },
+  mediaPreview: { width: '100%', height: 180, borderRadius: 12, backgroundColor: Colors.border },
+  removeMedia: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 4 },
 });
