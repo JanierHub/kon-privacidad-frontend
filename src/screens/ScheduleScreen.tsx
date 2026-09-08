@@ -4,7 +4,7 @@ import { FlatList, Image, RefreshControl, StyleSheet, Text, View } from 'react-n
 import { Colors, Fonts } from '../navigation/theme';
 import { supabase } from '../services/supabase';
 
-type ClassItem = {
+type Tutoria = {
   id: string;
   subject: string;
   professor: string;
@@ -19,16 +19,17 @@ const DAY_ORDER: Record<string, number> = {
 };
 
 /**
- * Reads the schedule image (optional overview image of the full timetable)
- * from the `app_settings` table and the list of classes from `schedule`.
+ * Tutorías tab — read-only view for users. Shows the schedule overview
+ * image (set by the admin) plus the list of tutoring sessions that the
+ * admin has published.
  */
 export function ScheduleScreen() {
-  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [tutorias, setTutorias] = useState<Tutoria[]>([]);
   const [scheduleImage, setScheduleImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchSchedule = async () => {
+  const fetchData = async () => {
     const { data: settings } = await supabase
       .from('app_settings')
       .select('schedule_image_url')
@@ -39,33 +40,39 @@ export function ScheduleScreen() {
     const { data } = await supabase
       .from('schedule')
       .select('*')
+      .is('user_id', null)
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true });
-    const sorted = ((data as ClassItem[]) ?? []).sort(
+    const sorted = ((data as Tutoria[]) ?? []).sort(
       (a, b) => (DAY_ORDER[a.day_of_week] ?? 99) - (DAY_ORDER[b.day_of_week] ?? 99)
     );
-    setClasses(sorted);
+    setTutorias(sorted);
     setLoading(false);
     setRefreshing(false);
   };
 
-  useEffect(() => { fetchSchedule(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const onRefresh = () => { setRefreshing(true); fetchSchedule(); };
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text style={styles.placeholder}>Cargando horario...</Text>
+        <Text style={styles.placeholder}>Cargando tutorías...</Text>
       </View>
     );
   }
 
   return (
     <FlatList
-      data={classes}
+      data={tutorias}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={classes.length === 0 && styles.center}
+      contentContainerStyle={tutorias.length === 0 && styles.center}
       ListHeaderComponent={
         scheduleImage ? (
           <Image source={{ uri: scheduleImage }} style={styles.scheduleImage} resizeMode="contain" />
@@ -73,7 +80,7 @@ export function ScheduleScreen() {
       }
       ListEmptyComponent={
         scheduleImage ? null : (
-          <Text style={styles.placeholder}>No hay clases registradas.</Text>
+          <Text style={styles.placeholder}>No hay tutorías registradas.</Text>
         )
       }
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
@@ -81,9 +88,10 @@ export function ScheduleScreen() {
         <View style={styles.card}>
           <Text style={styles.subject}>{item.subject}</Text>
           {item.professor ? <Text style={styles.prof}>{item.professor}</Text> : null}
-
           <Text style={styles.meta}>{item.day_of_week}</Text>
-          <Text style={styles.meta}>{item.start_time} - {item.end_time}</Text>
+          {item.start_time || item.end_time ? (
+            <Text style={styles.meta}>{item.start_time}{item.start_time && item.end_time ? ' - ' : ''}{item.end_time}</Text>
+          ) : null}
           {item.classroom ? <Text style={styles.meta}>{item.classroom}</Text> : null}
         </View>
       )}
@@ -98,9 +106,6 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 3 / 4,
     marginHorizontal: 16,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
     alignSelf: 'center',
   },
   card: {
@@ -112,6 +117,5 @@ const styles = StyleSheet.create({
   },
   subject: { fontSize: 16, fontWeight: '600', color: Colors.text, fontFamily: Fonts.family },
   prof: { fontSize: 13, color: Colors.primary, marginTop: 4, fontFamily: Fonts.family },
-  row: { flexDirection: 'row', gap: 16, marginTop: 6 },
-  meta: { fontSize: 13, color: Colors.text, fontFamily: Fonts.family },
+  meta: { fontSize: 13, color: Colors.text, marginTop: 2, fontFamily: Fonts.family },
 });

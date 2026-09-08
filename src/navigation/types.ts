@@ -35,6 +35,14 @@ export type NewsStackParamList = {
 };
 
 /**
+ * Stack param list for the Posts tab ("Publicaciones" in the UI).
+ */
+export type PostsStackParamList = {
+  PostsMain: undefined;
+  PostsDetail: DetailScreenParams;
+};
+
+/**
  * Stack param list for the Calendar tab ("Calendario" in the UI).
  */
 export type CalendarStackParamList = {
@@ -43,11 +51,19 @@ export type CalendarStackParamList = {
 };
 
 /**
- * Stack param list for the Schedule tab ("Horario" in the UI).
+ * Stack param list for the Schedule tab ("Tutorías" in the UI).
  */
 export type ScheduleStackParamList = {
   ScheduleMain: undefined;
   ScheduleDetail: DetailScreenParams;
+};
+
+/**
+ * Stack param list for the Horario tab (personal schedule in the UI).
+ */
+export type HorarioStackParamList = {
+  HorarioMain: undefined;
+  HorarioDetail: DetailScreenParams;
 };
 
 /**
@@ -76,7 +92,9 @@ export type ProfileStackParamList = {
 export type RootTabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>;
   NewsTab: NavigatorScreenParams<NewsStackParamList>;
+  PostsTab: NavigatorScreenParams<PostsStackParamList>;
   CalendarTab: NavigatorScreenParams<CalendarStackParamList>;
+  HorarioTab: NavigatorScreenParams<HorarioStackParamList>;
   ScheduleTab: NavigatorScreenParams<ScheduleStackParamList>;
   AlertsTab: NavigatorScreenParams<AlertsStackParamList>;
   ProfileTab: NavigatorScreenParams<ProfileStackParamList>;

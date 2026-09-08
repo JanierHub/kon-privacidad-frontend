@@ -6,7 +6,9 @@ import { AlertsScreen } from '../screens/AlertsScreen';
 import { CalendarScreen } from '../screens/CalendarScreen';
 import { DetailScreen } from '../screens/DetailScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { HorarioScreen } from '../screens/HorarioScreen';
 import { NewsScreen } from '../screens/NewsScreen';
+import { PostsScreen } from '../screens/PostsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ScheduleScreen } from '../screens/ScheduleScreen';
 import { headerOptions, tabBarOptions } from './theme';
@@ -14,7 +16,9 @@ import type {
   AlertsStackParamList,
   CalendarStackParamList,
   HomeStackParamList,
+  HorarioStackParamList,
   NewsStackParamList,
+  PostsStackParamList,
   ProfileStackParamList,
   RootTabParamList,
   ScheduleStackParamList,
@@ -60,6 +64,23 @@ function NewsStackNavigator() {
 }
 
 /**
+ * Nested stack for the Posts tab ("Publicaciones" in the UI).
+ */
+const PostsStack = createNativeStackNavigator<PostsStackParamList>();
+function PostsStackNavigator() {
+  return (
+    <PostsStack.Navigator screenOptions={headerOptions}>
+      <PostsStack.Screen
+        name="PostsMain"
+        component={PostsScreen}
+        options={{ title: 'Publicaciones', headerShown: false }}
+      />
+      <PostsStack.Screen name="PostsDetail" component={DetailScreen} options={{ title: 'Detalle' }} />
+    </PostsStack.Navigator>
+  );
+}
+
+/**
  * Nested stack for the Calendar tab ("Calendario" in the UI).
  */
 const CalendarStack = createNativeStackNavigator<CalendarStackParamList>();
@@ -81,7 +102,28 @@ function CalendarStackNavigator() {
 }
 
 /**
- * Nested stack for the Schedule tab ("Horario" in the UI).
+ * Nested stack for the Horario tab (personal schedule in the UI).
+ */
+const HorarioStack = createNativeStackNavigator<HorarioStackParamList>();
+function HorarioStackNavigator() {
+  return (
+    <HorarioStack.Navigator screenOptions={headerOptions}>
+      <HorarioStack.Screen
+        name="HorarioMain"
+        component={HorarioScreen}
+        options={{ title: 'Horario', headerShown: false }}
+      />
+      <HorarioStack.Screen
+        name="HorarioDetail"
+        component={DetailScreen}
+        options={{ title: 'Detalle' }}
+      />
+    </HorarioStack.Navigator>
+  );
+}
+
+/**
+ * Nested stack for the Schedule tab ("Tutorías" in the UI).
  */
 const ScheduleStack = createNativeStackNavigator<ScheduleStackParamList>();
 function ScheduleStackNavigator() {
@@ -90,7 +132,7 @@ function ScheduleStackNavigator() {
       <ScheduleStack.Screen
         name="ScheduleMain"
         component={ScheduleScreen}
-        options={{ title: 'Horario', headerShown: false }}
+        options={{ title: 'Tutorías', headerShown: false }}
       />
       <ScheduleStack.Screen
         name="ScheduleDetail"
@@ -179,14 +221,24 @@ export function TabNavigator() {
         options={{ title: 'Noticias', tabBarIcon: tabIcon('newspaper', 'newspaper-outline') }}
       />
       <Tab.Screen
+        name="PostsTab"
+        component={PostsStackNavigator}
+        options={{ title: 'Publicaciones', tabBarIcon: tabIcon('albums', 'albums-outline') }}
+      />
+      <Tab.Screen
         name="CalendarTab"
         component={CalendarStackNavigator}
         options={{ title: 'Calendario', tabBarIcon: tabIcon('calendar', 'calendar-outline') }}
       />
       <Tab.Screen
+        name="HorarioTab"
+        component={HorarioStackNavigator}
+        options={{ title: 'Horario', tabBarIcon: tabIcon('time', 'time-outline') }}
+      />
+      <Tab.Screen
         name="ScheduleTab"
         component={ScheduleStackNavigator}
-        options={{ title: 'Horario', tabBarIcon: tabIcon('time', 'time-outline') }}
+        options={{ title: 'Tutorías', tabBarIcon: tabIcon('school', 'school-outline') }}
       />
       <Tab.Screen
         name="AlertsTab"
